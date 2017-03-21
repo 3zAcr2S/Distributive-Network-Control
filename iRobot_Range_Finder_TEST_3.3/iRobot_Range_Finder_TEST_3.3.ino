@@ -87,7 +87,7 @@ void setup()
   delay(50);
   Serial2.write(131); // Go into save mode, i.e. whenever robot is picked up it stops (see p. 6 of Create's Open Interface documentation)
   delay(50);
-
+  delay(100);
   /* initialize pixys */
   pixy1.init();
   pixy2.init();
