@@ -209,6 +209,7 @@ void formating() {
     angle = angle + PI;
     velocity = - velocity;
   }
+
   //dist = -0.0055 * pow(velocity, 2) + 4.9184 * pow(velocity, 1) + -3.4936;
   dist = velocity;
 
@@ -342,6 +343,7 @@ void getvector(int k) {
             // check if signature 2,3 detected, if so remember the index j;
             s_c1_i = pixy1.blocks[j].signature;
 
+
             if ((s_c1_i == 2)){
               i_c1s1 = j;
             }
@@ -365,7 +367,9 @@ void getvector(int k) {
   {
 
     Serial.println("Stage [2.1]"); // stage for debug use
+
     while (i_c2s1 == -1)
+
     {
       blocks2 = pixy2.getBlocks();
 
@@ -386,6 +390,7 @@ void getvector(int k) {
 
             s_c2_i = pixy2.blocks[j].signature;
 
+<
             if ((s_c2_i == 2)){
               i_c2s1 = j;
             }
@@ -394,6 +399,7 @@ void getvector(int k) {
           {
             x_c2s1[0] = (X_CENTER - pixy2.blocks[i_c2s1].x) * rad_FoV_X;
             x_c2s1[1] = (Y_CENTER - pixy2.blocks[i_c2s1].y) * rad_FoV_Y;
+
           }
         }
       }
@@ -436,6 +442,7 @@ void camVecUpdate() {
   //  m.Print((float*)u1, 3, 1, "u1");
 
   /* information of object from camera 1 with signature 2 */
+
   //  m.Print((float*)v1, 3, 1, "v1");
   //  anglePrint(yawCam,pitchCam,1); // just for debugging delete this line for real case
 
