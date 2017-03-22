@@ -45,10 +45,14 @@ void rotate(int velocity);
 #define Y_CENTER        ((PIXY_MAX_Y-PIXY_MIN_Y)/2)      // Ymax = 199, Ymin = 0
 #define k_d             0.2
 #define rotation_speed  3.602413372155987     // = 2 pi / 1.7144 [sec]
-#define d_ideal         90               // [cm]
+
+/*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
+#define d_ideal         40               // [cm]
+#define k_v             1              // K gain in speed
+/*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 float rad_FoV_X       = 0.004090615434362; // = 75 [deg] (pi/180 [deg]) / 320 (FoV_X / Xmax)
 float rad_FoV_Y       = 0.003926990816987; // = 45 [deg] (pi/180 [deg]) / 200 (FoV_Y / Ymax)
-int   time_step       = 10 * 1000;   // [ms]
+int   time_step       = 5 * 1000;   // [ms]
 int   time_cam_update = 1000;        // time interval for camera to reveal new information
 double dist, t0; //dist in [cm], t in sec
 double omega = 360 / 1.74416;
@@ -144,11 +148,39 @@ void loop()
     camVecUpdate();
     Serial.println("Get Distance");
     getdistance();
+
+    for (ii = 0; ii <= 2; ii++)
+    {
+      Z1[ii] = z[ii];
+      Serial.print(Z1[ii]);
+      Serial.print("  ");
+    }
+
     Serial.println("Formating");
     formating();
 
     t = millis();
 
+    /*
+            // calculate distance between cameras sets to object 1
+            triangulation(u1, u2);
+
+            // save temporary location vector into a permanent one
+            for (ii = 0; ii <= 2; ii++)
+            {
+              Z1[ii] = z[ii];
+          //      //Serial.print(ii);
+            }
+            // calculate distance between cameras sets to object 2
+            triangulation(v1, v2);
+
+            // save temporary location vector into a permanent one
+            for (ii = 0; ii <= 2; ii++)
+            {
+              Z2[ii] = z[ii];
+          //      //Serial.print(ii);
+            }
+    */
   }
 
 }
@@ -167,7 +199,7 @@ void formating() {
   V1 = round(Z1[0]  * k1); // velocity component x
   V2 = round(Z1[1]  * k1);
 
-  velocity = sqrt(sq(V1 / 10) + sq(V2 / 10)) / 10;
+  velocity = k_v * sqrt(fabs(V1) + fabs(V2));
 
   //limit the maximum velocity forward
   if (velocity > 500) {
@@ -224,14 +256,14 @@ void formating() {
   Serial.println(dist);
 
   if (t_r > 0) {
-    while ( (millis() - t_form) < 1 * t_r)
+    while ( (millis() - t_form) < 3 * t_r)
     {
       drive(100, 1);
       Serial.print("rotate left ");
     }
   }
   else {
-    while ( (millis() - t_form) < 1 * (-t_r) )
+    while ( (millis() - t_form) < 3 * (-t_r) )
     {
       drive(100, -1);
       Serial.print("rotate right ");
@@ -243,7 +275,7 @@ void formating() {
 
   delay(100);
   drive(0, 0);
-  if ((millis() - t_form) < 3000) {
+  if ((millis() - t_form) < 1500) {
     delay(3000 - (millis() - t_form) );
   }
   delay(1000); // the delay allows the Analog to Digital converter IC to recover for the next reading.
@@ -257,16 +289,27 @@ void formating() {
   delay(100); // the delay allows the Analog to Digital converter IC to recover for the next reading.
   //Serial.println("line 226");
   drive(0, 0);
+  delay(900);
   if (time_step > (millis() - t)) // delay up to  10 second
   {
     delay(time_step - (millis() - t));
   }
 }
 
+
+/*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+  -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+  SUB FUNCTIOINS BELOW
+  -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+  -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
+
+
+
+
 void getdistance() {
   // this subfunction is used for call triangulation with different input U & V
   // calculate distance between cameras sets to object 1
-   triangulation(u1, u2);
+  triangulation(u1, u2);
   // save temporary location vector into a permanent one
 
 }
@@ -312,80 +355,80 @@ void getvector(int k) {
         // change the module number skips frames
         if ( i % 1 == 0)
         {
-          //          printing out every detected object information
-          //          Serial.println("========================================================");
-          //          sprintf(buf, "Cam [1] Detected %d , @ i = %d:\n", blocks1, i);
-          //          Serial.print(buf);
+//                    printing out every detected object information
+                    Serial.println("========================================================");
+                    sprintf(buf, "Cam [1] Detected %d , @ i = %d:\n", blocks1, i);
+                    Serial.print(buf);
           for (j = 0; j < blocks1; j++)
-                      {
-            //            sprintf(buf, "  block %d: ", j);
-            //            Serial.print(buf);
-            //            pixy1.blocks[j].print();
+          {
+                        sprintf(buf, "  block %d: ", j);
+                        Serial.print(buf);
+                        pixy1.blocks[j].print();
 
             // check if signature 2,3 detected, if so remember the index j;
             s_c1_i = pixy1.blocks[j].signature;
 
 
-          if ((s_c1_i == 2)) {
-            i_c1s1 = j;
+            if ((s_c1_i == 2)) {
+              i_c1s1 = j;
+            }
           }
-        }
 
-        // if both signatures detected, save the coordinates of correspoinding objects
-        if ((i_c1s1 != -1))
-        {
-          x_c1s1[0] = (X_CENTER - pixy1.blocks[i_c1s1].x) * rad_FoV_X;
-          x_c1s1[1] = (Y_CENTER - pixy1.blocks[i_c1s1].y) * rad_FoV_Y;
+          // if both signatures detected, save the coordinates of correspoinding objects
+          if ((i_c1s1 != -1))
+          {
+            x_c1s1[0] = (X_CENTER - pixy1.blocks[i_c1s1].x) * rad_FoV_X;
+            x_c1s1[1] = (Y_CENTER - pixy1.blocks[i_c1s1].y) * rad_FoV_Y;
+          }
         }
       }
     }
+    //        //Serial.println("Stage [1.2]"); // stage for debug use
   }
-  //        //Serial.println("Stage [1.2]"); // stage for debug use
-}
 
-/* Part II */
-// in case we want toget objects from camera 2. Every line of code is same as first part.
-if (k == 2)
-{
-
-  Serial.println("Stage [2.1]"); // stage for debug use
-
-  while (i_c2s1 == -1)
-
+  /* Part II */
+  // in case we want toget objects from camera 2. Every line of code is same as first part.
+  if (k == 2)
   {
-    blocks2 = pixy2.getBlocks();
 
-    i++;
-    if (blocks2)
+    Serial.println("Stage [2.1]"); // stage for debug use
+
+    while (i_c2s1 == -1)
+
     {
-      if ( i % 1 == 0)
+      blocks2 = pixy2.getBlocks();
+
+      i++;
+      if (blocks2)
       {
-
-        //          Serial.println("-----------------------------------------------------");
-        //          sprintf(buf, "Cam [2] Detected %d , @ i = %d:\n", blocks2, i);
-        //          Serial.print(buf);
-        for (j = 0; j < blocks2; j++)
+        if ( i % 1 == 0)
         {
-          //            sprintf(buf, "  block %d: ", j);
-          //            Serial.print(buf);
-          //            pixy2.blocks[j].print();
 
-          s_c2_i = pixy2.blocks[j].signature;
-          if ((s_c2_i == 2)) {
-            i_c2s1 = j;
+                    Serial.println("-----------------------------------------------------");
+                    sprintf(buf, "Cam [2] Detected %d , @ i = %d:\n", blocks2, i);
+                    Serial.print(buf);
+          for (j = 0; j < blocks2; j++)
+          {
+                        sprintf(buf, "  block %d: ", j);
+                        Serial.print(buf);
+                        pixy2.blocks[j].print();
+
+            s_c2_i = pixy2.blocks[j].signature;
+            if ((s_c2_i == 2)) {
+              i_c2s1 = j;
+            }
           }
-        }
-        if (i_c2s1 != -1)
-        {
-          x_c2s1[0] = (X_CENTER - pixy2.blocks[i_c2s1].x) * rad_FoV_X;
-          x_c2s1[1] = (Y_CENTER - pixy2.blocks[i_c2s1].y) * rad_FoV_Y;
+          if (i_c2s1 != -1)
+          {
+            x_c2s1[0] = (X_CENTER - pixy2.blocks[i_c2s1].x) * rad_FoV_X;
+            x_c2s1[1] = (Y_CENTER - pixy2.blocks[i_c2s1].y) * rad_FoV_Y;
 
+          }
         }
       }
     }
+    //    //Serial.println("Stage [2.2]"); // stage for debug use
   }
-  //    //Serial.println("Stage [2.2]"); // stage for debug use
-}
 
 
 }
