@@ -30,7 +30,7 @@ PixyI2C pixy2(0x42);
 
 /* define subfunctions*/
 void camVecUpdate();
-void triangulation();
+void triangulation(float*, float*);
 void getvector();
 void driveStraight(int velocity);
 void drive(int velocity, int radius);
@@ -148,26 +148,6 @@ void loop()
     formating();
 
     t = millis();
-    /*
-        // calculate distance between cameras sets to object 1
-        triangulation(u1, u2);
-
-        // save temporary location vector into a permanent one
-        for (ii = 0; ii <= 2; ii++)
-        {
-          Z1[ii] = z[ii];
-      //      //Serial.print(ii);
-        }
-        // calculate distance between cameras sets to object 2
-        triangulation(v1, v2);
-
-        // save temporary location vector into a permanent one
-        for (ii = 0; ii <= 2; ii++)
-        {
-          Z2[ii] = z[ii];
-      //      //Serial.print(ii);
-        }
-    */
 
   }
 
@@ -182,7 +162,8 @@ void formating() {
   d1        = sqrt(sq(Z1[0]) + sq(Z1[1]));
 
   k1 = (d1 - d_ideal);
-
+  Serial.print("d1 is : ");
+  Serial.println(d1);
   V1 = round(Z1[0]  * k1); // velocity component x
   V2 = round(Z1[1]  * k1);
 
@@ -193,12 +174,13 @@ void formating() {
     velocity = 500;
   }
 
-  
+
   Serial.println(velocity);
   Serial.print("  ");
   Serial.print(V1);
   Serial.print("  ");
   Serial.println(V2);
+
   angle = atan2(V2, V1);
 
   if (angle > PI / 2) {
@@ -284,7 +266,7 @@ void formating() {
 void getdistance() {
   // this subfunction is used for call triangulation with different input U & V
   // calculate distance between cameras sets to object 1
-  triangulation(u1, u2);
+   triangulation(u1, u2);
   // save temporary location vector into a permanent one
 
 }
@@ -330,82 +312,80 @@ void getvector(int k) {
         // change the module number skips frames
         if ( i % 1 == 0)
         {
-//          printing out every detected object information
-          Serial.println("========================================================");
-          sprintf(buf, "Cam [1] Detected %d , @ i = %d:\n", blocks1, i);
-          Serial.print(buf);
+          //          printing out every detected object information
+          //          Serial.println("========================================================");
+          //          sprintf(buf, "Cam [1] Detected %d , @ i = %d:\n", blocks1, i);
+          //          Serial.print(buf);
           for (j = 0; j < blocks1; j++)
-          {
-            sprintf(buf, "  block %d: ", j);
-            Serial.print(buf);
-            pixy1.blocks[j].print();
+                      {
+            //            sprintf(buf, "  block %d: ", j);
+            //            Serial.print(buf);
+            //            pixy1.blocks[j].print();
 
             // check if signature 2,3 detected, if so remember the index j;
             s_c1_i = pixy1.blocks[j].signature;
 
 
-            if ((s_c1_i == 2)){
-              i_c1s1 = j;
-            }
-          }
-
-          // if both signatures detected, save the coordinates of correspoinding objects
-          if ((i_c1s1 != -1))
-          {
-            x_c1s1[0] = (X_CENTER - pixy1.blocks[i_c1s1].x) * rad_FoV_X;
-            x_c1s1[1] = (Y_CENTER - pixy1.blocks[i_c1s1].y) * rad_FoV_Y;
+          if ((s_c1_i == 2)) {
+            i_c1s1 = j;
           }
         }
-      }
-    }
-    //        //Serial.println("Stage [1.2]"); // stage for debug use
-  }
 
-  /* Part II */
-  // in case we want toget objects from camera 2. Every line of code is same as first part.
-  if (k == 2)
-  {
-
-    Serial.println("Stage [2.1]"); // stage for debug use
-
-    while (i_c2s1 == -1)
-
-    {
-      blocks2 = pixy2.getBlocks();
-
-      i++;
-      if (blocks2)
-      {
-        if ( i % 1 == 0)
+        // if both signatures detected, save the coordinates of correspoinding objects
+        if ((i_c1s1 != -1))
         {
-
-          //          Serial.println("-----------------------------------------------------");
-          //          sprintf(buf, "Cam [2] Detected %d , @ i = %d:\n", blocks2, i);
-          //          Serial.print(buf);
-          for (j = 0; j < blocks2; j++)
-          {
-            //            sprintf(buf, "  block %d: ", j);
-            //            Serial.print(buf);
-            //            pixy2.blocks[j].print();
-
-            s_c2_i = pixy2.blocks[j].signature;
-
-<
-            if ((s_c2_i == 2)){
-              i_c2s1 = j;
-            }
-          }
-          if (i_c2s1 != -1)
-          {
-            x_c2s1[0] = (X_CENTER - pixy2.blocks[i_c2s1].x) * rad_FoV_X;
-            x_c2s1[1] = (Y_CENTER - pixy2.blocks[i_c2s1].y) * rad_FoV_Y;
-
-          }
+          x_c1s1[0] = (X_CENTER - pixy1.blocks[i_c1s1].x) * rad_FoV_X;
+          x_c1s1[1] = (Y_CENTER - pixy1.blocks[i_c1s1].y) * rad_FoV_Y;
         }
       }
     }
-    //    //Serial.println("Stage [2.2]"); // stage for debug use
   }
+  //        //Serial.println("Stage [1.2]"); // stage for debug use
+}
+
+/* Part II */
+// in case we want toget objects from camera 2. Every line of code is same as first part.
+if (k == 2)
+{
+
+  Serial.println("Stage [2.1]"); // stage for debug use
+
+  while (i_c2s1 == -1)
+
+  {
+    blocks2 = pixy2.getBlocks();
+
+    i++;
+    if (blocks2)
+    {
+      if ( i % 1 == 0)
+      {
+
+        //          Serial.println("-----------------------------------------------------");
+        //          sprintf(buf, "Cam [2] Detected %d , @ i = %d:\n", blocks2, i);
+        //          Serial.print(buf);
+        for (j = 0; j < blocks2; j++)
+        {
+          //            sprintf(buf, "  block %d: ", j);
+          //            Serial.print(buf);
+          //            pixy2.blocks[j].print();
+
+          s_c2_i = pixy2.blocks[j].signature;
+          if ((s_c2_i == 2)) {
+            i_c2s1 = j;
+          }
+        }
+        if (i_c2s1 != -1)
+        {
+          x_c2s1[0] = (X_CENTER - pixy2.blocks[i_c2s1].x) * rad_FoV_X;
+          x_c2s1[1] = (Y_CENTER - pixy2.blocks[i_c2s1].y) * rad_FoV_Y;
+
+        }
+      }
+    }
+  }
+  //    //Serial.println("Stage [2.2]"); // stage for debug use
+}
 
 
 }
@@ -418,21 +398,14 @@ void camVecUpdate() {
   //  double yawCam, pitchCam;
   //  yawCam    = (X_CENTER - pixy1.blocks[i_c1s1].x) * rad_FoV_X; // Xangle [rad] of the center of mass of the block from the center
   //  pitchCam  = (Y_CENTER - pixy1.blocks[i_c1s1].y) * rad_FoV_Y; // Yangle [rad] of the center of mass of the block from the center
+
   Serial.print(x_c1s1[0]);
   Serial.print("  ");
-
   Serial.print(x_c2s1[0]);
-
   Serial.print("  ");
-
   Serial.print(x_c1s1[1]);
-
   Serial.print(x_c2s1[1]);
-
   Serial.println("  ");
-
-
-
 
   /* information of object from camera 1 with signature 1 */
 
