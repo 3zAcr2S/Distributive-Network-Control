@@ -55,6 +55,7 @@ double dist, t0; //dist in [cm], t in sec
 double omega = 360 / 1.74416;
 
 /* camera related parameters */
+float       mat_x_c1[num_target][2], mat_x_c2[num_target][2], mat_u1[num_target][3], mat_u2[num_target][3];
 float       u0[3] = {1, 0, 0}, u1[3], u2[3], v1[3], v2[3];; // orientation: u0 - vehicle, u1 - cam1, u2 - cam2
 float       x_c1s1[2], x_c1s2[2], x_c2s1[2], x_c2s2[2];
 float       U[2][2], L[2], ltemp[2], tsMat[2], p[3], q[3]; // needed for camera calculation
@@ -63,7 +64,7 @@ MatrixMath  m;
 
 /* estimation related parameters */
 float       t2, t1, dt;
-float       u[3], z[3], Z1[3], Z2[3];
+float       u[3], z[3], Z1[3], Z2[3], mat_Z[num_target][3];
 //float       x[6], xprev[6], xest[3], u[3], z[3], P[6][6], Pprev[6][6], Pest[6][6], Ex[6][6], Ez[3][3], K[6][3], Z1[3], Z2[3]; // not useful at this moment
 
 /* iRobot formation related parameters */
@@ -87,7 +88,6 @@ void setup()
   delay(50);
   Serial2.write(131); // Go into save mode, i.e. whenever robot is picked up it stops (see p. 6 of Create's Open Interface documentation)
   delay(50);
-  delay(100);
   /* initialize pixys */
   pixy1.init();
   pixy2.init();
@@ -175,28 +175,43 @@ void loop()
 }
 
 void formating() {
-  long int         V1, V2, velocity, radius;
+  long int         V1 = 0, V2 = 0, velocity, radius;
   int         t_r; // local variable to find how long need for rotation
   double      k1, k2, d1, d2;
+  float       mat_k[num_target], mat_d[num_target], mat_V[2] = {0,0};
+  int i;
   //Serial.println("line 180");
 
-  d1        = sqrt(sq(Z1[0]) + sq(Z1[1]));
-  d2        = sqrt(sq(Z2[0]) + sq(Z2[1]));
+  for (int ii = 0; ii <= 2; ii++) {
+    mat_d[i] = sqrt(sq(mat_Z[i][0]) + sq(mat_Z[i][1]));
+    mat_k[i] = (sq(mat_d[i]) - sq(d_ideal));
+    mat_k[i] = (sq(mat_d[i]) - sq(d_ideal));
+    mat_V[1]+= round(mat_Z[i][0] * mat_k[i]) / num_target;
+    mat_V[2]+= round(mat_Z[i][1] * mat_k[i]) / num_target;
+  }
+  velocity = sqrt( 1 / 2 * (sq(mat_V[1] / 100) + sq( mat_V[2] / 100)) ) / 100;
 
-  k1 = (sq(d1) - sq(d_ideal));
-  k2 = (sq(d2) - sq(d_ideal));
+  angle = atan2(mat_V[2], mat_V[1]);
 
-  V1 = round(Z1[0]  * k1 + Z2[0] * k2); // velocity component x
-  V2 = round(Z1[1]  * k1 + Z2[1] * k2);
+  /*
+    d1 = sqrt(sq(Z1[0]) + sq(Z1[1]));
+    k1 = (sq(d1) - sq(d_ideal));
+    d2 = sqrt(sq(Z2[0]) + sq(Z2[1]));
+    k2 = (sq(d2) - sq(d_ideal));
 
-  velocity = sqrt(sq(V1 / 100) + sq(V2 / 100)) / 100;
-
+    V1 = round(Z1[0]  * k1 + Z2[0] * k2); // velocity component x
+    V2 = round(Z1[1]  * k1 + Z2[1] * k2);
+    velocity = sqrt( 1 / 2 * (sq(V1 / 100) + sq(V2 / 100)) ) / 100;
+    angle = atan2(V2, V1);
+  */
   Serial.println(velocity);
   Serial.print("  ");
   Serial.print(V1);
   Serial.print("  ");
   Serial.println(V2);
-  angle = atan2(V2, V1);
+
+
+
 
   if (angle > PI / 2) {
     angle = angle - PI;
@@ -287,6 +302,8 @@ void getdistance() {
   triangulation(u1, u2);
 
 
+
+
   // save temporary location vector into a permanent one
   for (int ii = 0; ii <= 2; ii++)
   {
@@ -322,6 +339,14 @@ void getvector(int k) {
   char buf[32];
 
   /* index of different objects */
+  float mat_i_c1[num_target], mat_i_c2[num_target];
+  for (int jj = 0; jj < num_target; jj++){
+    mat_i_c1[jj] = -1;
+    mat_i_c2[jj] = -1;
+  }
+
+  
+  
   int i_c1s1 = -1;
   int i_c1s2 = -1;
   int i_c2s1 = -1;
@@ -351,7 +376,7 @@ void getvector(int k) {
         // change the module number skips frames
         if ( i % 1 == 0)
         {
-//          printing out every detected object information
+          //          printing out every detected object information
           Serial.println("========================================================");
           sprintf(buf, "Cam [1] Detected %d , @ i = %d:\n", blocks1, i);
           Serial.print(buf);
