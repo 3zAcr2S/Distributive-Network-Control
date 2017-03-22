@@ -180,16 +180,20 @@ void formating() {
   //Serial.println("line 180");
 
   d1        = sqrt(sq(Z1[0]) + sq(Z1[1]));
-  d2        = sqrt(sq(Z2[0]) + sq(Z2[1]));
 
-  k1 = (sq(d1) - sq(d_ideal));
-  k2 = (sq(d2) - sq(d_ideal));
+  k1 = (d1 - d_ideal);
 
-  V1 = round(Z1[0]  * k1 + Z2[0] * k2); // velocity component x
-  V2 = round(Z1[1]  * k1 + Z2[1] * k2);
+  V1 = round(Z1[0]  * k1); // velocity component x
+  V2 = round(Z1[1]  * k1);
 
-  velocity = sqrt(sq(V1 / 100) + sq(V2 / 100)) / 100;
+  velocity = sqrt(sq(V1 / 10) + sq(V2 / 10)) / 10;
 
+  //limit the maximum velocity forward
+  if (velocity > 500) {
+    velocity = 500;
+  }
+
+  
   Serial.println(velocity);
   Serial.print("  ");
   Serial.print(V1);
@@ -205,7 +209,6 @@ void formating() {
     angle = angle + PI;
     velocity = - velocity;
   }
-
 
   //dist = -0.0055 * pow(velocity, 2) + 4.9184 * pow(velocity, 1) + -3.4936;
   dist = velocity;
@@ -283,10 +286,6 @@ void getdistance() {
   // calculate distance between cameras sets to object 1
   triangulation(u1, u2);
   // save temporary location vector into a permanent one
-  for (int ii = 0; ii <= 2; ii++)
-  {
-    Z1[ii] = z[ii];
-  }
 
 }
 
@@ -317,7 +316,7 @@ void getvector(int k) {
     Serial.println("Stage [1.1]");  // stage for debug use
 
     /* while not both object signature detected */
-    while ((i_c1s1 == -1) || (i_c1s2 == -1))
+    while (i_c1s1 == -1)
     {
       // get blocks number from camera
       blocks1 = pixy1.getBlocks();
@@ -344,24 +343,17 @@ void getvector(int k) {
             // check if signature 2,3 detected, if so remember the index j;
             s_c1_i = pixy1.blocks[j].signature;
 
-            if ((s_c1_i == 2))
-            {
-              i_c1s1 = j;
-            }
 
-            if (s_c1_i == 3)
-            {
-              i_c1s2 = j;
+            if ((s_c1_i == 2)){
+              i_c1s1 = j;
             }
           }
 
           // if both signatures detected, save the coordinates of correspoinding objects
-          if ((i_c1s1 != -1) && (i_c1s2 != -1))
+          if ((i_c1s1 != -1))
           {
             x_c1s1[0] = (X_CENTER - pixy1.blocks[i_c1s1].x) * rad_FoV_X;
             x_c1s1[1] = (Y_CENTER - pixy1.blocks[i_c1s1].y) * rad_FoV_Y;
-            x_c1s2[0] = (X_CENTER - pixy1.blocks[i_c1s2].x) * rad_FoV_X;
-            x_c1s2[1] = (Y_CENTER - pixy1.blocks[i_c1s2].y) * rad_FoV_Y;
           }
         }
       }
@@ -375,7 +367,9 @@ void getvector(int k) {
   {
 
     Serial.println("Stage [2.1]"); // stage for debug use
-    while ((i_c2s1 == -1) || (i_c2s2 == -1))
+
+    while (i_c2s1 == -1)
+
     {
       blocks2 = pixy2.getBlocks();
 
@@ -396,22 +390,16 @@ void getvector(int k) {
 
             s_c2_i = pixy2.blocks[j].signature;
 
-            if ((s_c2_i == 2))
-            {
+<
+            if ((s_c2_i == 2)){
               i_c2s1 = j;
             }
-
-            if (s_c2_i == 3)
-            {
-              i_c2s2 = j;
-            }
           }
-          if ((i_c2s1 != -1) && (i_c2s2 != -1))
+          if (i_c2s1 != -1)
           {
             x_c2s1[0] = (X_CENTER - pixy2.blocks[i_c2s1].x) * rad_FoV_X;
             x_c2s1[1] = (Y_CENTER - pixy2.blocks[i_c2s1].y) * rad_FoV_Y;
-            x_c2s2[0] = (X_CENTER - pixy2.blocks[i_c2s2].x) * rad_FoV_X;
-            x_c2s2[1] = (Y_CENTER - pixy2.blocks[i_c2s2].y) * rad_FoV_Y;
+
           }
         }
       }
@@ -432,20 +420,15 @@ void camVecUpdate() {
   //  pitchCam  = (Y_CENTER - pixy1.blocks[i_c1s1].y) * rad_FoV_Y; // Yangle [rad] of the center of mass of the block from the center
   Serial.print(x_c1s1[0]);
   Serial.print("  ");
-  Serial.print(x_c1s2[0]);
-  Serial.print("  ");
+
   Serial.print(x_c2s1[0]);
-  Serial.print("  ");
-  Serial.print(x_c2s2[0]);
+
   Serial.print("  ");
 
   Serial.print(x_c1s1[1]);
-  Serial.print("  ");
-  Serial.print(x_c1s2[1]);
-  Serial.print("  ");
+
   Serial.print(x_c2s1[1]);
-  Serial.print("  ");
-  Serial.print(x_c2s2[1]);
+
   Serial.println("  ");
 
 
@@ -459,9 +442,7 @@ void camVecUpdate() {
   //  m.Print((float*)u1, 3, 1, "u1");
 
   /* information of object from camera 1 with signature 2 */
-  v1[0] = cos(x_c1s2[1]) * cos(x_c1s2[0]);
-  v1[1] = cos(x_c1s2[1]) * sin(x_c1s2[0]);
-  v1[2] = sin(x_c1s2[1]);
+
   //  m.Print((float*)v1, 3, 1, "v1");
   //  anglePrint(yawCam,pitchCam,1); // just for debugging delete this line for real case
 
@@ -471,9 +452,6 @@ void camVecUpdate() {
   u2[2] = sin(x_c2s1[1]);
   //  m.Print((float*)u2, 3, 1, "u2");
   /* information of object from camera 2 with signature 2 */
-  v2[0] = cos(x_c2s2[1]) * cos(x_c2s2[0]);
-  v2[1] = cos(x_c2s2[1]) * sin(x_c2s2[0]);
-  v2[2] = sin(x_c2s2[1]);
   //  m.Print((float*)v2, 3, 1, "v2");
 }
 
